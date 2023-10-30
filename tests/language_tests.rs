@@ -4,12 +4,55 @@ use std::path::PathBuf;
 
 use prost::Message;
 
-use yharnam::*;
+use chapter::*;
 
 mod test_plan;
 
+fn compile(yarn_path: &PathBuf) {
+    let yarn_path_str = yarn_path.to_str().unwrap();
+    let output_path = yarn_path.parent().unwrap();
+    let output_path_str = output_path.as_os_str().to_str().unwrap();
+
+    let status = std::process::Command::new("ysc.exe")
+                                .args([
+                                    "compile",
+                                    "--output-directory",
+                                    output_path_str,
+                                    yarn_path_str,
+                                ])
+                                .status()
+                                .unwrap();
+                            assert!(status.success());
+
+}
+
+fn ensure_yarnc(yarnc_path_str: &str) {
+    assert!(yarnc_path_str.ends_with(".yarnc"));
+    let yarnc_path = PathBuf::from(yarnc_path_str);
+    if !yarnc_path.exists() {
+        let yarn_path = {
+            let mut path = yarnc_path.clone();
+            path.set_extension("yarn");
+            path
+        };
+        compile(&yarn_path);
+    }
+}
+
+fn test_script_with_setup<F: FnOnce(&mut test_plan::PlanRunner)>(yarnc_path: &str, setup: F) -> Result<(), Box<dyn Error>> {
+    ensure_yarnc(yarnc_path);
+    let mut runner = test_plan::PlanRunner::new(yarnc_path);
+    setup(&mut runner);
+    runner.run()
+}
+
+fn test_script(yarnc_path: &str) -> Result<(), Box<dyn Error>> {
+    test_script_with_setup(yarnc_path, |_|{})
+}
+
 fn set_up_vm(yarnc_path: &str) -> VirtualMachine {
     let _ = pretty_env_logger::try_init();
+    ensure_yarnc(yarnc_path);
 
     let proto_path = PathBuf::from(yarnc_path);
 
@@ -58,8 +101,7 @@ fn set_up_vm(yarnc_path: &str) -> VirtualMachine {
 
 #[test]
 fn test_commands() -> Result<(), Box<dyn Error>> {
-    let mut runner = test_plan::PlanRunner::new("test_files/Commands.yarn");
-    runner.run()
+    test_script("test_files/Commands.yarnc")
 }
 
 #[test]
@@ -76,14 +118,12 @@ fn test_expressions() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_format_functions() -> Result<(), Box<dyn Error>> {
-    let mut runner = test_plan::PlanRunner::new("test_files/FormatFunctions.yarn");
-    runner.run()
+    test_script("test_files/FormatFunctions.yarnc")
 }
 
 #[test]
 fn test_number_functions() -> Result<(), Box<dyn Error>> {
-    let mut runner = test_plan::PlanRunner::new("test_files/NumberFunctions.yarn");
-    runner.run()
+    test_script("test_files/NumberFunctions.yarnc")
 }
 
 #[test]
@@ -100,39 +140,34 @@ fn test_functions() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_if_statements() -> Result<(), Box<dyn Error>> {
-    let mut runner = test_plan::PlanRunner::new("test_files/IfStatements.yarn");
-    runner.run()
+    test_script("test_files/IfStatements.yarnc")
 }
 
 #[test]
 fn test_inline_expressions() -> Result<(), Box<dyn Error>> {
-    let mut runner = test_plan::PlanRunner::new("test_files/InlineExpressions.yarn");
-    runner.run()
+    test_script("test_files/InlineExpressions.yarnc")
 }
 
 #[test]
 fn test_random_functions() -> Result<(), Box<dyn Error>> {
-    let mut runner = test_plan::PlanRunner::new("test_files/RandomFunctions.yarn");
-    runner.get_vm().set_random_seed(12345);
-    runner.run()
+    test_script_with_setup("test_files/RandomFunctions.yarnc", |runner| {
+        runner.get_vm().set_random_seed(12345);
+    })
 }
 
 #[test]
 fn test_shortcut_options() -> Result<(), Box<dyn Error>> {
-    let mut runner = test_plan::PlanRunner::new("test_files/ShortcutOptions.yarn");
-    runner.run()
+    test_script("test_files/ShortcutOptions.yarnc")
 }
 
 #[test]
 fn test_smileys() -> Result<(), Box<dyn Error>> {
-    let mut runner = test_plan::PlanRunner::new("test_files/Smileys.yarn");
-    runner.run()
+    test_script("test_files/Smileys.yarnc")
 }
 
 #[test]
 fn test_tags() -> Result<(), Box<dyn Error>> {
-    let mut runner = test_plan::PlanRunner::new("test_files/Tags.yarn");
-    runner.run()
+    test_script("test_files/Tags.yarnc")
 }
 
 #[test]
@@ -161,6 +196,5 @@ fn test_variable_storage() -> Result<(), Box<dyn Error>> {
 
 #[test]
 fn test_visited_counter() -> Result<(), Box<dyn Error>> {
-    let mut runner = test_plan::PlanRunner::new("test_files/VisitedCounter.yarnc");
-    runner.run()
+    test_script("test_files/VisitedCounter.yarnc")
 }

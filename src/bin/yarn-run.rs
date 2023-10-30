@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 use prost::Message;
 
-use yharnam::*;
+use chapter::*;
 
 const DEFAULT_START_NODE_NAME: &str = "Start";
 

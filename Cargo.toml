@@ -1,5 +1,5 @@
 [package]
-name = "yharnam"
+name = "chapter"
 version = "0.0.1"
 edition = "2018"
 authors = ["Gabriel Martinez <gabe@gabem.me>"]

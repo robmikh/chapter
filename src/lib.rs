@@ -91,12 +91,12 @@ impl YarnOption {
     }
 }
 
-pub type ReturningFunction = dyn Fn(&mut VirtualMachine, &[YarnValue]) -> YarnValue + Send + Sync;
-pub type Function = dyn Fn(&mut VirtualMachine, &[YarnValue]) + Send + Sync;
+pub type ReturningFunction = dyn Fn(&mut VirtualMachine, &[YarnValue]) -> YarnValue;
+pub type Function = dyn Fn(&mut VirtualMachine, &[YarnValue]);
 
 pub enum YarnFunction {
-    Void(&'static Function),
-    Returning(&'static ReturningFunction),
+    Void(Box<Function>),
+    Returning(Box<ReturningFunction>),
 }
 
 impl YarnFunction {
@@ -135,17 +135,17 @@ pub struct FunctionInfo {
 }
 
 impl FunctionInfo {
-    pub fn new(param_count: i8, func: &'static Function) -> Self {
+    pub fn new(param_count: i8, func: impl Fn(&mut VirtualMachine, &[YarnValue]) + 'static) -> Self {
         Self {
             param_count: param_count.into(),
-            func: YarnFunction::Void(func),
+            func: YarnFunction::Void(Box::new(func)),
         }
     }
 
-    pub fn new_returning(param_count: i8, func: &'static ReturningFunction) -> Self {
+    pub fn new_returning(param_count: i8, func: impl Fn(&mut VirtualMachine, &[YarnValue]) -> YarnValue + 'static) -> Self {
         Self {
             param_count: param_count.into(),
-            func: YarnFunction::Returning(func),
+            func: YarnFunction::Returning(Box::new(func)),
         }
     }
 }

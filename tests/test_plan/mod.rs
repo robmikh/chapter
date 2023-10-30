@@ -5,7 +5,7 @@ use std::path::Path;
 
 use prost::Message;
 
-use yharnam::*;
+use chapter::*;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum PlanStep {
@@ -210,7 +210,7 @@ impl PlanRunner {
             line_text = line_text.replacen(&format!("{{{}}}", i), &substitution, 1);
         }
 
-        yharnam::expand_format_functions(&line_text, &self.locale)
+        chapter::expand_format_functions(&line_text, &self.locale)
     }
 
     pub fn run(&mut self) -> Result<(), Box<dyn Error>> {
